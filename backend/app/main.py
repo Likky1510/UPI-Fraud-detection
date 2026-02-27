@@ -3,8 +3,9 @@ from __future__ import annotations
 from typing import Dict
 import random
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 
 from .i18n import get_tip
 from .model_runtime import ModelRuntime
@@ -14,9 +15,11 @@ from .schemas import (
     PredictionResult,
     TransactionRequest,
 )
+from .tts_service import CloudTTSService
 
 app = FastAPI(title="UPI Shield API", version="1.0.0")
 model_runtime = ModelRuntime()
+tts_service = CloudTTSService()
 
 app.add_middleware(
     CORSMiddleware,
@@ -108,10 +111,30 @@ def health() -> dict:
     }
 
 
+class TTSRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=8000)
+    language: str = Field("en", pattern="^(en|hi|te)$")
+
+
 @app.post("/predict", response_model=PredictionResult)
 def predict(tx: TransactionRequest) -> PredictionResult:
     prob = model_runtime.predict_probabilities([tx.model_dump()])[0]
     return score_transaction(tx, prob)
+
+
+@app.post("/tts")
+def tts(payload: TTSRequest) -> Response:
+    try:
+        audio_bytes = tts_service.synthesize_mp3(payload.text, payload.language)  # type: ignore[arg-type]
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Cloud TTS unavailable. Verify Google credentials and package installation.",
+        ) from exc
+
+    return Response(content=audio_bytes, media_type="audio/mpeg")
 
 
 @app.post("/predict/batch", response_model=BatchPredictResponse)

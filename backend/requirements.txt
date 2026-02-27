@@ -7,3 +7,4 @@ scikit-learn==1.6.1
 torch==2.5.1
 joblib==1.5.1
 python-multipart==0.0.20
+google-cloud-texttospeech==2.31.0

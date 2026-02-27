@@ -251,6 +251,48 @@ let currentLang = "en";
 let recognition = null;
 let isListening = false;
 const SPEECH_LANG = { en: "en-IN", hi: "hi-IN", te: "te-IN" };
+let availableVoices = [];
+const USE_CLOUD_TTS = true;
+let currentAudio = null;
+let currentAudioUrl = null;
+const FEMALE_VOICE_HINTS = {
+  en: ["zira", "aria", "jenny", "susan", "hazel", "samantha", "female", "woman"],
+  hi: ["heera", "kalpana", "swara", "female", "woman"],
+  te: ["swara", "female", "woman"],
+};
+const LANGUAGE_NAME_HINTS = {
+  en: ["english", "en-"],
+  hi: ["hindi", "hi-", "हिंदी"],
+  te: ["telugu", "te-", "తెలుగు"],
+};
+const SPEECH_REWRITE_MAP = {
+  hi: [
+    [/transaction id/gi, "लेनदेन आईडी"],
+    [/type/gi, "प्रकार"],
+    [/amount/gi, "राशि"],
+    [/step/gi, "स्टेप"],
+    [/sender balances?/gi, "प्रेषक शेष"],
+    [/receiver balances?/gi, "प्राप्तकर्ता शेष"],
+    [/dashboard/gi, "डैशबोर्ड"],
+    [/score/gi, "स्कोर"],
+    [/blocked/gi, "ब्लॉक"],
+    [/risky/gi, "जोखिमपूर्ण"],
+    [/safe/gi, "सुरक्षित"],
+  ],
+  te: [
+    [/transaction id/gi, "లావాదేవీ ఐడి"],
+    [/type/gi, "రకం"],
+    [/amount/gi, "మొత్తం"],
+    [/step/gi, "స్టెప్"],
+    [/sender balances?/gi, "పంపినవారి బ్యాలెన్స్"],
+    [/receiver balances?/gi, "స్వీకరించే వారి బ్యాలెన్స్"],
+    [/dashboard/gi, "డాష్‌బోర్డ్"],
+    [/score/gi, "స్కోర్"],
+    [/blocked/gi, "నిలిపివేసినది"],
+    [/risky/gi, "ప్రమాదకరం"],
+    [/safe/gi, "సురక్షితం"],
+  ],
+};
 const ASSISTANT_KB = {
   en: {
     welcome: "I am your UPI Shield assistant. Ask me anything about this dashboard, form fields, scoring, simulation, or fraud safety.",
@@ -276,8 +318,8 @@ const ASSISTANT_KB = {
   },
   hi: {
     welcome: "मैं आपका UPI Shield असिस्टेंट हूं। डैशबोर्ड, फॉर्म, स्कोरिंग, सिमुलेशन और सुरक्षा पर कुछ भी पूछें।",
-    fallback: "मैं इन विषयों में मदद कर सकता हूं: फॉर्म कैसे भरें, step, amount/balance, safe/risky/blocked, simulation, language change, fraud tips.",
-    guide: "यह क्रम रखें: Transaction ID, Type, Amount, Step (1-744), sender balances, receiver balances, पिछले 1 घंटे के txns, और जरूरत हो तो device/location changed.",
+    fallback: "मैं इन विषयों में मदद कर सकता हूं: फॉर्म कैसे भरें, स्टेप, राशि/बैलेंस, सुरक्षित/जोखिमपूर्ण/ब्लॉक, सिमुलेशन, भाषा बदलना और सुरक्षा सुझाव।",
+    guide: "यह क्रम रखें: लेनदेन आईडी, प्रकार, राशि, स्टेप (1-744), प्रेषक बैलेंस, प्राप्तकर्ता बैलेंस, पिछले 1 घंटे के लेनदेन, और जरूरत हो तो डिवाइस/लोकेशन बदला चुनें।",
     tips: "OTP या UPI PIN कभी साझा न करें। UPI ID और नाम जांचें। अज्ञात QR और फर्जी सपोर्ट कॉल से बचें।",
     step: "Step डेटा का घंटों वाला समय इंडेक्स है। 1 से 744 तक कोई पूर्णांक दें।",
     amount: "Amount ट्रांसफर राशि है। बैलेंस सही रखें: sender new balance आमतौर पर old minus amount होता है।",
@@ -298,8 +340,8 @@ const ASSISTANT_KB = {
   },
   te: {
     welcome: "నేను మీ UPI Shield అసిస్టెంట్‌ను. డాష్‌బోర్డ్, ఫారమ్, స్కోరింగ్, సిమ్యులేషన్, భద్రతపై ఏదైనా అడగండి.",
-    fallback: "నేను ఈ విషయాల్లో సహాయం చేస్తాను: ఫారమ్ ఎలా నింపాలి, step, amount/balance, safe/risky/blocked, simulation, language change, fraud tips.",
-    guide: "ఈ క్రమంలో నింపండి: Transaction ID, Type, Amount, Step (1-744), sender balances, receiver balances, గత 1 గంట txn count, అవసరమైతే device/location changed.",
+    fallback: "నేను ఈ విషయాల్లో సహాయం చేస్తాను: ఫారమ్ ఎలా నింపాలి, స్టెప్, మొత్తం/బ్యాలెన్స్, సురక్షితం/ప్రమాదకరం/నిలిపివేసినవి, సిమ్యులేషన్, భాష మార్చడం, భద్రత సూచనలు.",
+    guide: "ఈ క్రమంలో నింపండి: లావాదేవీ ఐడి, రకం, మొత్తం, స్టెప్ (1-744), పంపినవారి బ్యాలెన్స్, స్వీకరించే వారి బ్యాలెన్స్, గత 1 గంట లావాదేవీల సంఖ్య, అవసరమైతే డివైస్/లోకేషన్ మారింది ఎంపిక చేయండి.",
     tips: "OTP లేదా UPI PIN ఎప్పుడూ పంచుకోవద్దు. UPI ID మరియు పేరు ధృవీకరించండి. తెలియని QR కోడ్‌లు, నకిలీ సపోర్ట్ కాల్స్ నుండి జాగ్రత్త.",
     step: "Step అనేది గంటల ఆధారిత టైమ్ ఇండెక్స్. 1 నుండి 744 వరకు పూర్తి సంఖ్య ఇవ్వండి.",
     amount: "Amount అంటే పంపే మొత్తం. బ్యాలెన్స్ సరిపోయేలా ఉండాలి: sender new balance సాధారణంగా old minus amount.",
@@ -309,7 +351,7 @@ const ASSISTANT_KB = {
     txnCount: "Txns Last 1h అంటే అదే యూజర్ గత 1 గంటలో చేసిన లావాదేవీల సంఖ్య.",
     cashin: "CASH_IN అంటే డబ్బు ఖాతాలోకి రావడం. CASH_OUT అంటే డబ్బు బయటకు వెళ్లడం.",
     verdicts: "SAFE = తక్కువ ప్రమాదం, RISKY = అనుమానాస్పదం, BLOCKED = అధిక ప్రమాదం మరియు నిలిపివేత.",
-    simulation: "Batch Simulation పెద్ద synthetic లావాదేవీలు నడిపి Safe/Risky/Blocked కౌంట్ చూపిస్తుంది.",
+    simulation: "బ్యాచ్ సిమ్యులేషన్ పెద్ద నమూనా లావాదేవీలు నడిపి సురక్షితం/ప్రమాదకరం/నిలిపివేసినవి కౌంట్ చూపిస్తుంది.",
     language: "ఎడమవైపు Alert Language ద్వారా English/Hindi/Telugu కి పూర్తి UI మార్చండి.",
     backend: "పై కుడివైపు backend status కనిపిస్తుంది. Offline అయితే FastAPIని port 8000లో ప్రారంభించండి.",
     scored: "ఇప్పుడు లావాదేవీ స్కోర్ అవుతోంది.",
@@ -346,15 +388,110 @@ function addChatMessage(text, role = "bot") {
   refs.assistantMessages.scrollTop = refs.assistantMessages.scrollHeight;
 }
 
-function speakText(text) {
+function refreshVoices() {
   if (!("speechSynthesis" in window)) return;
-  const utterance = new SpeechSynthesisUtterance(text);
+  availableVoices = window.speechSynthesis.getVoices() || [];
+}
+
+function pickPreferredVoice() {
+  const target = (SPEECH_LANG[currentLang] || "en-IN").toLowerCase();
+  const langPrefix = target.slice(0, 2);
+  const femaleHints = FEMALE_VOICE_HINTS[currentLang] || FEMALE_VOICE_HINTS.en;
+  const nameHints = LANGUAGE_NAME_HINTS[currentLang] || [];
+  const exactVoices = availableVoices.filter((v) => (v.lang || "").toLowerCase().replace("_", "-") === target);
+  const exactFemale = exactVoices.find((v) => {
+    const n = (v.name || "").toLowerCase();
+    return femaleHints.some((hint) => n.includes(hint));
+  });
+  if (exactFemale) return exactFemale;
+  if (exactVoices.length) return exactVoices[0];
+
+  const langVoices = availableVoices.filter((v) => {
+    const lang = (v.lang || "").toLowerCase().replace("_", "-");
+    const name = (v.name || "").toLowerCase();
+    return lang.startsWith(langPrefix) || nameHints.some((hint) => name.includes(hint));
+  });
+  if (!langVoices.length) return null;
+
+  const femaleVoice = langVoices.find((v) => {
+    const n = (v.name || "").toLowerCase();
+    return femaleHints.some((hint) => n.includes(hint));
+  });
+
+  return femaleVoice || langVoices[0] || null;
+}
+
+function prepareSpeechText(text) {
+  const raw = String(text || "");
+  const rules = SPEECH_REWRITE_MAP[currentLang];
+  if (!rules) return raw;
+  return rules.reduce((acc, [pattern, replacement]) => acc.replace(pattern, replacement), raw);
+}
+
+function hasLanguageVoice(langCode) {
+  const prefix = (SPEECH_LANG[langCode] || "en-IN").toLowerCase().slice(0, 2);
+  const nameHints = LANGUAGE_NAME_HINTS[langCode] || [];
+  return availableVoices.some((v) => {
+    const lang = (v.lang || "").toLowerCase().replace("_", "-");
+    const name = (v.name || "").toLowerCase();
+    return lang.startsWith(prefix) || nameHints.some((hint) => name.includes(hint));
+  });
+}
+
+function stopCurrentAudio() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+  if (currentAudioUrl) {
+    URL.revokeObjectURL(currentAudioUrl);
+    currentAudioUrl = null;
+  }
+}
+
+function speakTextLocal(text) {
+  if (!("speechSynthesis" in window)) return;
+  // Voices can be empty on first call in some browsers.
+  if (!availableVoices.length) refreshVoices();
+  const utterance = new SpeechSynthesisUtterance(prepareSpeechText(text));
   utterance.lang = SPEECH_LANG[currentLang] || "en-IN";
-  const voices = window.speechSynthesis.getVoices();
-  const preferredVoice = voices.find((v) => v.lang.toLowerCase().startsWith((SPEECH_LANG[currentLang] || "en").slice(0, 2)));
+  const preferredVoice = pickPreferredVoice();
   if (preferredVoice) utterance.voice = preferredVoice;
+  // Softer voice profile.
+  utterance.rate = 0.92;
+  utterance.pitch = 1.08;
+  utterance.volume = 0.9;
+  stopCurrentAudio();
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(utterance);
+}
+
+async function speakText(text) {
+  const prepared = prepareSpeechText(text);
+  if (!USE_CLOUD_TTS) {
+    speakTextLocal(prepared);
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/tts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: prepared, language: currentLang }),
+    });
+    if (!res.ok) throw new Error("Cloud TTS failed");
+    const blob = await res.blob();
+    stopCurrentAudio();
+    window.speechSynthesis.cancel();
+
+    currentAudioUrl = URL.createObjectURL(blob);
+    currentAudio = new Audio(currentAudioUrl);
+    currentAudio.onended = () => stopCurrentAudio();
+    currentAudio.onerror = () => stopCurrentAudio();
+    await currentAudio.play();
+  } catch (_err) {
+    speakTextLocal(prepared);
+  }
 }
 
 function fillSafeExample() {
@@ -389,83 +526,147 @@ function commandMatches(command, patterns) {
   return patterns.some((pattern) => command.includes(pattern));
 }
 
+let lastAssistantIntent = "welcome";
+let fallbackCursor = 0;
+
+const FALLBACK_VARIANTS = {
+  en: [
+    "I can answer this better if you mention topic name like step, amount, balances, simulation, blocked, or safety tips.",
+    "Ask in natural way. Example: What is step? How to fill balances? Why is a transaction blocked?",
+    "I understand website questions. Try: explain this dashboard, how to score transaction, or give fraud prevention tips.",
+  ],
+  hi: [
+    "अगर आप विषय का नाम बताएं तो मैं बेहतर जवाब दूंगा, जैसे step, amount, balance, simulation, blocked, या safety tips.",
+    "सवाल सामान्य भाषा में पूछें। उदाहरण: step क्या है? balance कैसे भरें? transaction blocked क्यों हुआ?",
+    "मैं वेबसाइट से जुड़े सवाल समझता हूं। पूछें: यह dashboard क्या करता है, स्कोर कैसे करें, fraud से कैसे बचें।",
+  ],
+  te: [
+    "విషయాన్ని చెబితే నేను ఇంకా మంచి సమాధానం ఇస్తాను: step, amount, balance, simulation, blocked లేదా safety tips.",
+    "సహజంగా అడగండి. ఉదా: step అంటే ఏమిటి? balances ఎలా నింపాలి? transaction ఎందుకు blocked అయింది?",
+    "వెబ్‌సైట్‌కు సంబంధించిన ప్రశ్నలు నాకు అర్థమవుతాయి. అడగండి: ఈ dashboard ఏమి చేస్తుంది, score ఎలా చేయాలి, fraud నుండి ఎలా జాగ్రత్తపడాలి.",
+  ],
+};
+
+function getIntentFromCommand(command) {
+  const intents = [
+    { id: "help", patterns: ["help", "guide", "how to fill", "form", "मदद", "सहायता", "फॉर्म", "ఎలా నింపాలి", "సహాయం", "ఫారమ్"] },
+    { id: "tips", patterns: ["tips", "tip", "safety", "fraud", "otp", "सुरक्षा", "सुझाव", "टिप्स", "మోసం", "సూచనలు", "భద్రత"] },
+    { id: "step", patterns: ["step", "स्टेप", "స్టెప్"] },
+    { id: "amount", patterns: ["amount", "राशि", "amount क्या", "మొత్తం", "ఎంత మొత్తం"] },
+    { id: "balances", patterns: ["balance", "old balance", "new balance", "बैलेंस", "शेष", "బ్యాలెన్స్"] },
+    { id: "device", patterns: ["device changed", "device", "डिवाइस", "డివైస్"] },
+    { id: "location", patterns: ["location changed", "location", "लोकेशन", "ప్రాంతం", "లోకేషన్"] },
+    { id: "txnCount", patterns: ["txns", "last 1h", "1 hour", "1 घंटे", "1 గంట", "recent transactions"] },
+    { id: "cashin", patterns: ["cash in", "cash-out", "cash out", "cashin", "cash_in", "cash_out"] },
+    { id: "verdicts", patterns: ["verdict", "blocked", "risky", "safe", "निर्णय", "ब्लॉक", "ప్రమాదకరం", "నిలిపివేసినవి"] },
+    { id: "backend", patterns: ["backend", "server", "health", "api"] },
+    { id: "simulation", patterns: ["simulate", "batch", "simulation", "सिमुलेशन", "बैच", "సిమ్యులేషన్", "బ్యాచ్"] },
+    { id: "score", patterns: ["score", "submit", "check transaction", "स्कोर", "सबमिट", "స్కోర్"] },
+    { id: "safeExample", patterns: ["safe example", "safe form", "सुरक्षित उदाहरण", "సురక్షిత ఉదాహరణ"] },
+    { id: "riskyExample", patterns: ["risky example", "fraud example", "जोखिम उदाहरण", "ప్రమాద ఉదాహరణ"] },
+    { id: "clear", patterns: ["clear", "reset", "रीसेट", "రిసెట్"] },
+    { id: "stop", patterns: ["stop", "cancel voice", "वॉइस बंद", "వాయిస్ ఆపు", "ఆపు"] },
+    { id: "website", patterns: ["website", "dashboard", "what this", "about this", "इसके बारे", "बारे में", "దీని గురించి", "dashboard గురించి"] },
+  ];
+
+  const scores = intents.map((intent) => {
+    let score = 0;
+    for (const p of intent.patterns) {
+      if (command.includes(p)) score += 1 + (p.length > 6 ? 0.25 : 0);
+    }
+    return { id: intent.id, score };
+  });
+
+  scores.sort((a, b) => b.score - a.score);
+  return scores[0].score > 0 ? scores[0].id : null;
+}
+
 function runAssistantCommand(rawCommand) {
   const command = (rawCommand || "").trim().toLowerCase();
   if (!command) return;
   addChatMessage(rawCommand, "user");
 
-  const helpPatterns = ["help", "guide", "how to fill", "मदद", "గైడ్", "సహాయం", "fill form", "form"];
-  const tipsPatterns = ["tips", "safety", "fraud", "otp", "सुरक्षा", "సూచనలు", "భద్రత"];
-  const safePatterns = ["safe example", "safe form", "सुरक्षित उदाहरण", "సురక్షిత ఉదాహరణ"];
-  const riskyPatterns = ["risky example", "fraud example", "जोखिम", "ప్రమాద"];
-  const scorePatterns = ["score", "submit", "check transaction", "स्कोर", "స్కోర్"];
-  const simulatePatterns = ["simulate", "batch", "simulation", "सिमुलेशन", "సిమ్యులేషన్"];
-  const stepPatterns = ["step", "स्टेप", "స్టెప్"];
-  const amountPatterns = ["amount", "राशि", "మొత్తం"];
-  const balancePatterns = ["balance", "old balance", "new balance", "बैलेंस", "బ్యాలెన్స్"];
-  const devicePatterns = ["device changed", "device", "डिवाइस", "డివైస్"];
-  const locationPatterns = ["location changed", "location", "लोकेशन", "లోకేషన్"];
-  const txnCountPatterns = ["txns", "last 1h", "1 hour", "1 घंटे", "1 గంట"];
-  const cashinPatterns = ["cash in", "cash-out", "cash out", "cashi", "CASH_IN", "CASH_OUT"];
-  const verdictPatterns = ["safe risky blocked", "verdict", "blocked", "risky", "safe"];
-  const backendPatterns = ["backend", "server", "health", "api"];
-  const languagePatterns = ["language", "hindi", "english", "telugu", "भाषा", "భాష"];
-  const clearPatterns = ["clear", "reset", "रीसेट", "రిసెట్"];
-  const stopPatterns = ["stop", "cancel voice", "వాయిస్ ఆపు", "वॉइस बंद"];
-
   let response = "";
+  const languagePatterns = ["language", "hindi", "english", "telugu", "भाषा", "భాష", "हिंदी", "తెలుగు", "ఇంగ్లీష్"];
+  const languageSwitchVerbs = ["change", "switch", "to ", "बदल", "మార్చ", "set"];
+  const intent = getIntentFromCommand(command);
 
-  if (commandMatches(command, languagePatterns) && (command.includes("change") || command.includes("switch") || command.includes("to "))) {
+  if (commandMatches(command, languagePatterns) && commandMatches(command, languageSwitchVerbs)) {
     if (command.includes("hindi") || command.includes("hi")) refs.language.value = "hi";
     else if (command.includes("telugu") || command.includes("te")) refs.language.value = "te";
     else if (command.includes("english") || command.includes("en")) refs.language.value = "en";
+    else if (command.includes("हिंदी")) refs.language.value = "hi";
+    else if (command.includes("తెలుగు")) refs.language.value = "te";
+    else if (command.includes("इंग्लिश") || command.includes("ఆంగ్ల")) refs.language.value = "en";
     applyLanguage(refs.language.value);
     response = formatMessage(kb("langChanged"), { lang: LANGUAGE_LABELS[refs.language.value] });
-  } else if (commandMatches(command, helpPatterns)) {
+    lastAssistantIntent = "language";
+  } else if (intent === "help") {
     response = kb("guide");
-  } else if (commandMatches(command, tipsPatterns)) {
+    lastAssistantIntent = "help";
+  } else if (intent === "tips") {
     response = kb("tips");
-  } else if (commandMatches(command, stepPatterns)) {
+    lastAssistantIntent = "tips";
+  } else if (intent === "step") {
     response = kb("step");
-  } else if (commandMatches(command, amountPatterns)) {
+    lastAssistantIntent = "step";
+  } else if (intent === "amount") {
     response = kb("amount");
-  } else if (commandMatches(command, balancePatterns)) {
+    lastAssistantIntent = "amount";
+  } else if (intent === "balances") {
     response = kb("balances");
-  } else if (commandMatches(command, devicePatterns)) {
+    lastAssistantIntent = "balances";
+  } else if (intent === "device") {
     response = kb("device");
-  } else if (commandMatches(command, locationPatterns)) {
+    lastAssistantIntent = "device";
+  } else if (intent === "location") {
     response = kb("location");
-  } else if (commandMatches(command, txnCountPatterns)) {
+    lastAssistantIntent = "location";
+  } else if (intent === "txnCount") {
     response = kb("txnCount");
-  } else if (commandMatches(command, cashinPatterns)) {
+    lastAssistantIntent = "txnCount";
+  } else if (intent === "cashin") {
     response = kb("cashin");
-  } else if (commandMatches(command, verdictPatterns)) {
+    lastAssistantIntent = "cashin";
+  } else if (intent === "verdicts") {
     response = kb("verdicts");
-  } else if (commandMatches(command, backendPatterns)) {
+    lastAssistantIntent = "verdicts";
+  } else if (intent === "backend") {
     response = kb("backend");
-  } else if (commandMatches(command, simulatePatterns)) {
+    lastAssistantIntent = "backend";
+  } else if (intent === "simulation") {
     response = kb("simStart");
     refs.simulateBtn.click();
-  } else if (commandMatches(command, scorePatterns)) {
+    lastAssistantIntent = "simulation";
+  } else if (intent === "score") {
     response = kb("scored");
     refs.form.requestSubmit();
-  } else if (commandMatches(command, safePatterns)) {
+    lastAssistantIntent = "score";
+  } else if (intent === "safeExample") {
     fillSafeExample();
     response = kb("filledSafe");
-  } else if (commandMatches(command, riskyPatterns)) {
+    lastAssistantIntent = "safeExample";
+  } else if (intent === "riskyExample") {
     fillRiskyExample();
     response = kb("filledRisky");
-  } else if (commandMatches(command, clearPatterns)) {
+    lastAssistantIntent = "riskyExample";
+  } else if (intent === "clear") {
     refs.form.reset();
     document.getElementById("recent_txn_count_1h").value = "0";
     response = kb("guide");
-  } else if (commandMatches(command, stopPatterns)) {
+    lastAssistantIntent = "clear";
+  } else if (intent === "stop") {
     stopVoiceAssistant();
     return;
-  } else if (command.includes("what") || command.includes("website") || command.includes("dashboard")) {
+  } else if (intent === "website" || command.includes("what") || command.includes("website") || command.includes("dashboard")) {
     response = kb("welcome");
+    lastAssistantIntent = "website";
+  } else if ((command.includes("its") || command.includes("इसके") || command.includes("దాని")) && lastAssistantIntent) {
+    response = kb(lastAssistantIntent) || kb("fallback");
   } else {
-    response = kb("fallback");
+    const variants = FALLBACK_VARIANTS[currentLang] || FALLBACK_VARIANTS.en;
+    response = variants[fallbackCursor % variants.length];
+    fallbackCursor += 1;
   }
 
   addChatMessage(response, "bot");
@@ -516,6 +717,7 @@ function startVoiceAssistant() {
 function stopVoiceAssistant() {
   if (recognition && isListening) recognition.stop();
   isListening = false;
+  stopCurrentAudio();
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
   setVoiceStatus(t("voiceStopped"));
 }
@@ -742,6 +944,9 @@ refs.language.addEventListener("change", () => {
   });
   refs.result.textContent = langText;
   addChatMessage(langText, "bot");
+  if ((refs.language.value === "hi" || refs.language.value === "te") && !hasLanguageVoice(refs.language.value)) {
+    addChatMessage("Hindi/Telugu voice is not installed in this browser/OS. It may read using another voice.", "bot");
+  }
   setVoiceStatus(t("voiceReady"));
   updateSummary();
 });
@@ -751,5 +956,9 @@ refs.result.textContent = t("defaultResult");
 refs.apiState.textContent = t("checkingBackend");
 setVoiceStatus(t("voiceReady"));
 addChatMessage(kb("welcome"), "bot");
+refreshVoices();
+if ("speechSynthesis" in window) {
+  window.speechSynthesis.onvoiceschanged = refreshVoices;
+}
 checkBackend();
 updateSummary();

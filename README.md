@@ -36,6 +36,18 @@ Artifacts are saved in `backend/artifacts/`:
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+## Google Cloud TTS setup (for Hindi/Telugu voice)
+
+1. Create a Google Cloud project and enable `Cloud Text-to-Speech API`.
+2. Create a service account key JSON file.
+3. Set environment variable before starting backend:
+
+```powershell
+$env:GOOGLE_APPLICATION_CREDENTIALS="D:\path\to\gcp-service-account.json"
+```
+
+4. Restart backend. Frontend voice assistant will call backend `/tts` and use cloud voice.
+
 ## 4) Start frontend
 
 Open `UPI Sheild/dashboard.html` in a local server (recommended) so API calls work cleanly.
