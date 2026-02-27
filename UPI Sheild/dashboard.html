@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - UPI Shield</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="./assets/dashboard.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <h2>UPI Shield</h2>
+    <p id="subtitle">Fraud Detection Console</p>
+    <ul>
+      <li class="active" id="navDashboard">Dashboard</li>
+      <li><a href="index.html" id="navHome">Home</a></li>
+      <li><a href="login.html" id="navLogout">Logout</a></li>
+    </ul>
+    <label for="language" id="languageLabel">Alert Language</label>
+    <select id="language">
+      <option value="en">English</option>
+      <option value="hi">Hindi</option>
+      <option value="te">Telugu</option>
+    </select>
+  </aside>
+
+  <main class="main">
+    <header>
+      <h1 id="mainTitle">UPI Fraud Detection & Awareness</h1>
+      <div class="api-state" id="apiState">Checking backend...</div>
+    </header>
+
+    <section class="cards">
+      <article class="card"><h3 id="cardTotal">Total</h3><h2 id="total">0</h2></article>
+      <article class="card safe"><h3 id="cardSafe">Safe</h3><h2 id="safe">0</h2></article>
+      <article class="card risky"><h3 id="cardRisky">Risky</h3><h2 id="risky">0</h2></article>
+      <article class="card blocked"><h3 id="cardBlocked">Blocked</h3><h2 id="blocked">0</h2></article>
+    </section>
+
+    <section class="grid">
+      <article class="panel">
+        <h3 id="realTimeTitle">Real-Time Transaction Check</h3>
+        <form id="txnForm" class="form-grid">
+          <input id="transaction_id" placeholder="Transaction ID" required>
+          <select id="type" required>
+            <option value="PAYMENT" id="typePayment">PAYMENT</option>
+            <option value="TRANSFER" id="typeTransfer">TRANSFER</option>
+            <option value="CASH_OUT" id="typeCashOut">CASH_OUT</option>
+            <option value="CASH_IN" id="typeCashIn">CASH_IN</option>
+            <option value="DEBIT" id="typeDebit">DEBIT</option>
+          </select>
+          <input id="amount" type="number" min="0" step="0.01" placeholder="Amount" required>
+          <input id="step" type="number" min="1" max="744" placeholder="Step" required>
+          <input id="oldbalanceOrg" type="number" min="0" step="0.01" placeholder="Old Balance Org" required>
+          <input id="newbalanceOrig" type="number" min="0" step="0.01" placeholder="New Balance Org" required>
+          <input id="oldbalanceDest" type="number" min="0" step="0.01" placeholder="Old Balance Dest" required>
+          <input id="newbalanceDest" type="number" min="0" step="0.01" placeholder="New Balance Dest" required>
+          <input id="recent_txn_count_1h" type="number" min="0" max="1000" placeholder="Txns Last 1h" value="0">
+          <label><input id="device_changed" type="checkbox"> <span id="deviceChangedLabel">Device Changed</span></label>
+          <label><input id="location_changed" type="checkbox"> <span id="locationChangedLabel">Location Changed</span></label>
+          <button type="submit" id="scoreBtn">Score Transaction</button>
+        </form>
+        <div id="latestResult" class="result-box">Submit a transaction to see risk score and safety tips.</div>
+      </article>
+
+      <article class="panel">
+        <h3 id="batchTitle">Batch Simulation</h3>
+        <div class="sim-actions">
+          <input id="batchCount" type="number" min="1" max="250000" value="120000">
+          <button id="simulateBtn" type="button">Run Simulation</button>
+        </div>
+        <canvas id="chart"></canvas>
+      </article>
+    </section>
+
+    <section class="panel">
+      <h3 id="voiceTitle">Voice Assistant</h3>
+      <p id="voiceDesc">Get spoken guidance to fill the form correctly and avoid UPI fraud.</p>
+      <div id="assistantMessages" class="assistant-messages"></div>
+      <div class="voice-actions">
+        <button type="button" id="guideSpeakBtn">Form Guide</button>
+        <button type="button" id="tipsSpeakBtn">Safety Tips</button>
+        <button type="button" id="voiceListenBtn">Voice Input</button>
+        <button type="button" id="voiceStopBtn">Stop Voice</button>
+      </div>
+      <div class="voice-query">
+        <input id="assistantQuery" type="text" placeholder="Type a voice command like: help, safe example, tips">
+        <button type="button" id="assistantAskBtn">Ask Assistant</button>
+      </div>
+      <label class="voice-toggle"><input id="autoVoiceTips" type="checkbox" checked> <span id="autoVoiceLabel">Speak assistant replies automatically</span></label>
+      <div id="voiceStatus" class="result-box">Voice assistant ready.</div>
+    </section>
+
+    <section class="panel">
+      <h3 id="recentTitle">Recent Scored Transactions</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th id="thId">ID</th>
+              <th id="thType">Type</th>
+              <th id="thAmount">Amount</th>
+              <th id="thVerdict">Verdict</th>
+              <th id="thRisk">Risk</th>
+              <th id="thTip">Tip</th>
+            </tr>
+          </thead>
+          <tbody id="tableData"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="./assets/dashboard.js"></script>
+</body>
+</html>

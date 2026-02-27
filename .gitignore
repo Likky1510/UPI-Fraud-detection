@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+.venv/
+venv/
+
+# ML artifacts and data
+backend/artifacts/
+*.pt
+*.pth
+*.h5
+*.joblib
+*.csv
+
+# Node / frontend
+node_modules/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

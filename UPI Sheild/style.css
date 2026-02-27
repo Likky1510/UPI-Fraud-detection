@@ -1,0 +1,39 @@
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
+
+body{
+background:linear-gradient(135deg,#0f0c29,#1a1a2e,#16213e);
+color:white;
+text-align:center;
+}
+
+nav{
+display:flex;justify-content:space-between;
+padding:20px 80px;
+}
+
+nav a{color:#00f2fe;text-decoration:none;}
+
+.hero{
+margin-top:120px;
+}
+
+.hero h1{
+font-size:48px;
+}
+
+.hero span{
+color:#00f2fe;
+}
+
+.hero p{
+margin:20px 0;
+opacity:0.8;
+}
+
+.btn{
+padding:12px 25px;
+background:#00f2fe;
+color:black;
+text-decoration:none;
+border-radius:6px;
+}

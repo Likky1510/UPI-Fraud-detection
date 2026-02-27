@@ -1,0 +1,35 @@
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
+body{background:#0f172a;color:white;}
+
+.dashboard{display:flex;}
+
+.sidebar{
+width:220px;background:#111827;
+height:100vh;padding:20px;
+}
+
+.sidebar ul{list-style:none;margin-top:20px;}
+.sidebar li{margin:10px 0;}
+.sidebar a{color:white;text-decoration:none;}
+
+.main{flex:1;padding:40px;}
+
+.cards{
+display:flex;gap:20px;margin:20px 0;
+}
+
+.card{
+background:#1e293b;padding:20px;
+border-radius:10px;flex:1;
+}
+
+.fraud h2{color:#ff4d4d;}
+.safe h2{color:#00ff99;}
+
+table{
+width:100%;margin-top:30px;
+border-collapse:collapse;
+}
+
+th,td{padding:10px;text-align:left;}
+tr:nth-child(even){background:#1e293b;}
