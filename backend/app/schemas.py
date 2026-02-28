@@ -17,6 +17,20 @@ class TransactionRequest(BaseModel):
     device_changed: bool = False
     location_changed: bool = False
     recent_txn_count_1h: int = Field(0, ge=0, le=1000)
+    unknown_qr_code: bool = False
+    asked_scan_to_receive_money: bool = False
+    pin_or_otp_prompt_after_qr: bool = False
+    collect_request_received: bool = False
+    otp_shared: bool = False
+    upi_pin_shared: bool = False
+    phishing_link_clicked: bool = False
+    remote_app_installed: bool = False
+    screen_share_active: bool = False
+    fake_payment_screenshot: bool = False
+    merchant_name_mismatch: bool = False
+    urgency_pressure: bool = False
+    unknown_caller_request: bool = False
+    suspicious_app_clone: bool = False
 
 
 class PredictionResult(BaseModel):
@@ -27,6 +41,8 @@ class PredictionResult(BaseModel):
     verdict: Literal["SAFE", "RISKY", "BLOCKED"]
     tip: str
     language: LanguageCode
+    fraud_categories: List[str]
+    advice: List[str]
 
 
 class BatchPredictRequest(BaseModel):

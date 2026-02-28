@@ -1,6 +1,6 @@
 # UPI-Fraud-Detection-Awareness-System
 
-# UPI Shield - Fraud Detection Web Interface
+# UPI Sentinel - Fraud Detection Web Interface
 
 This project now includes:
 - Deep learning training pipeline for PaySim synthetic financial data
@@ -50,7 +50,7 @@ $env:GOOGLE_APPLICATION_CREDENTIALS="D:\path\to\gcp-service-account.json"
 
 ## 4) Start frontend
 
-Open `UPI Sheild/dashboard.html` in a local server (recommended) so API calls work cleanly.
+Open `UPI Sentinel/dashboard.html` in a local server (recommended) so API calls work cleanly.
 
 ## API endpoints
 
@@ -66,3 +66,5 @@ Open `UPI Sheild/dashboard.html` in a local server (recommended) so API calls wo
 - `< 55` => `SAFE`
 
 Combined score = `70% model probability + 30% rule-based signals`
+
+

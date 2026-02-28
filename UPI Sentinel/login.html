@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - UPI Sentinel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="login.css">
+</head>
+<body>
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="logo">🛡️ UPI Sentinel</div>
+        <h2>Secure User Login</h2>
+        <p class="subtitle">AI Powered Fraud Protection</p>
+
+        <form id="loginForm">
+            <div class="input-group">
+                <label>Email</label>
+                <input id="email" type="email" required>
+            </div>
+
+            <div class="input-group">
+                <label>Password</label>
+                <input id="password" type="password" required>
+            </div>
+
+            <button type="submit" class="login-btn">Login Securely</button>
+        </form>
+        <p id="statusText" class="subtitle"></p>
+
+        <div class="extra-links">
+            <a href="register.html">Create Account</a>
+            <a href="index.html">Back to Home</a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById("loginForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    const API_BASE = "http://127.0.0.1:8000";
+    const status = document.getElementById("statusText");
+    const payload = {
+      email: document.getElementById("email").value.trim(),
+      password: document.getElementById("password").value
+    };
+
+    fetch(`${API_BASE}/auth/login`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payload)
+    })
+      .then(async (res) => {
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.detail || "Login failed");
+        localStorage.setItem("upi_user", JSON.stringify(body.user));
+        status.textContent = "Login successful. Redirecting...";
+        status.style.color = "#7CFC99";
+        window.location.href = "dashboard.html";
+      })
+      .catch((err) => {
+        status.textContent = err.message || "Unable to login";
+        status.style.color = "#ff8080";
+      });
+});
+</script>
+
+</body>
+</html>

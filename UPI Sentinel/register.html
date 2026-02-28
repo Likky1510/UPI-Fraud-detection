@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register - UPI Sentinel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="login.css">
+</head>
+<body>
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="logo">🛡️ UPI Sentinel</div>
+        <h2>Create Account</h2>
+        <p class="subtitle">Register to access your fraud dashboard</p>
+
+        <form id="registerForm">
+            <div class="input-group">
+                <label>Full Name</label>
+                <input id="fullName" type="text" required>
+            </div>
+
+            <div class="input-group">
+                <label>Email</label>
+                <input id="email" type="email" required>
+            </div>
+
+            <div class="input-group">
+                <label>Password</label>
+                <input id="password" type="password" minlength="6" required>
+            </div>
+
+            <div class="input-group">
+                <label>Confirm Password</label>
+                <input id="confirmPassword" type="password" minlength="6" required>
+            </div>
+
+            <button type="submit" class="login-btn">Register</button>
+        </form>
+        <p id="statusText" class="subtitle"></p>
+
+        <div class="extra-links">
+            <a href="login.html">Already registered? Login</a>
+            <a href="index.html">Back to Home</a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById("registerForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    const API_BASE = "http://127.0.0.1:8000";
+    const status = document.getElementById("statusText");
+    const password = document.getElementById("password").value;
+    const confirm = document.getElementById("confirmPassword").value;
+
+    if (password !== confirm) {
+      status.textContent = "Passwords do not match";
+      status.style.color = "#ff8080";
+      return;
+    }
+
+    const payload = {
+      full_name: document.getElementById("fullName").value.trim(),
+      email: document.getElementById("email").value.trim(),
+      password
+    };
+
+    fetch(`${API_BASE}/auth/register`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payload)
+    })
+      .then(async (res) => {
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.detail || "Registration failed");
+        status.textContent = "Registration successful. Redirecting to login...";
+        status.style.color = "#7CFC99";
+        setTimeout(() => { window.location.href = "login.html"; }, 800);
+      })
+      .catch((err) => {
+        status.textContent = err.message || "Unable to register";
+        status.style.color = "#ff8080";
+      });
+});
+</script>
+
+</body>
+</html>

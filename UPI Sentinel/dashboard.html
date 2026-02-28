@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard - UPI Shield</title>
+<title>Dashboard - UPI Sentinel</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link rel="stylesheet" href="./assets/dashboard.css">
 </head>
 <body>
 <div class="layout">
   <aside class="sidebar">
-    <h2>UPI Shield</h2>
+    <h2>UPI Sentinel</h2>
     <p id="subtitle">Fraud Detection Console</p>
     <ul>
       <li class="active" id="navDashboard">Dashboard</li>
@@ -42,6 +42,31 @@
       <article class="panel">
         <h3 id="realTimeTitle">Real-Time Transaction Check</h3>
         <form id="txnForm" class="form-grid">
+          <div class="scenario-bar">
+            <select id="fraudScenario">
+              <option value="transaction_full" id="scenarioTransaction">Transaction Risk (Full)</option>
+              <option value="qr_scam" id="scenarioQrScam">QR Code Scam</option>
+              <option value="phishing_link" id="scenarioPhishing">Phishing Link Fraud</option>
+              <option value="fake_payment" id="scenarioFakePay">Fake Payment Screenshot</option>
+              <option value="otp_pin" id="scenarioOtpPin">OTP / UPI PIN Fraud</option>
+              <option value="collect_request" id="scenarioCollect">Collect Request Scam</option>
+              <option value="remote_access" id="scenarioRemote">Remote App / Screen Share Scam</option>
+              <option value="caller_pressure" id="scenarioCaller">Unknown Caller Pressure Scam</option>
+              <option value="fake_app" id="scenarioFakeApp">Fake UPI App Clone</option>
+            </select>
+            <button type="button" id="applyScenarioBtn">Apply Fraud Type</button>
+          </div>
+          <div id="scenarioHint" class="scenario-hint">Select fraud type to open required fields only.</div>
+          <div id="scenarioQuestions" class="fraud-signals" style="display:none;">
+            <h4>QR Safety Questions</h4>
+            <label><input id="q_unknown_qr" type="checkbox"> Is the QR code from an unknown person/shop?</label>
+            <label><input id="q_scan_receive_money" type="checkbox"> Did someone say “scan QR to receive money”?</label>
+            <label><input id="q_qr_pin_otp_prompt" type="checkbox"> After scanning, did app ask OTP/UPI PIN to receive money?</label>
+          </div>
+          <div id="scenarioQuestionsFakeApp" class="fraud-signals" style="display:none;">
+            <h4>Fake App Safety Question</h4>
+            <label><input id="q_fakeapp_otp_requested" type="checkbox"> Did this app ask for OTP/UPI PIN?</label>
+          </div>
           <input id="transaction_id" placeholder="Transaction ID" required>
           <select id="type" required>
             <option value="PAYMENT" id="typePayment">PAYMENT</option>
@@ -54,11 +79,26 @@
           <input id="step" type="number" min="1" max="744" placeholder="Step" required>
           <input id="oldbalanceOrg" type="number" min="0" step="0.01" placeholder="Old Balance Org" required>
           <input id="newbalanceOrig" type="number" min="0" step="0.01" placeholder="New Balance Org" required>
-          <input id="oldbalanceDest" type="number" min="0" step="0.01" placeholder="Old Balance Dest" required>
-          <input id="newbalanceDest" type="number" min="0" step="0.01" placeholder="New Balance Dest" required>
+          <input id="oldbalanceDest" type="number" min="0" step="0.01" placeholder="Old Balance Dest (Optional)">
+          <input id="newbalanceDest" type="number" min="0" step="0.01" placeholder="New Balance Dest (Optional)">
           <input id="recent_txn_count_1h" type="number" min="0" max="1000" placeholder="Txns Last 1h" value="0">
           <label><input id="device_changed" type="checkbox"> <span id="deviceChangedLabel">Device Changed</span></label>
           <label><input id="location_changed" type="checkbox"> <span id="locationChangedLabel">Location Changed</span></label>
+          <div class="fraud-signals" id="fraudSignalsPanel">
+            <h4>Fraud Context Signals</h4>
+            <label><input id="unknown_qr_code" type="checkbox"> Unknown QR code scanned</label>
+            <label><input id="collect_request_received" type="checkbox"> Suspicious collect request received</label>
+            <label><input id="phishing_link_clicked" type="checkbox"> Phishing payment link clicked</label>
+            <label><input id="otp_shared" type="checkbox"> OTP shared with someone</label>
+            <label><input id="upi_pin_shared" type="checkbox"> UPI PIN shared with someone</label>
+            <label><input id="fake_payment_screenshot" type="checkbox"> Only screenshot shown, money not credited</label>
+            <label><input id="remote_app_installed" type="checkbox"> Remote access app installed on call</label>
+            <label><input id="screen_share_active" type="checkbox"> Screen sharing active during payment</label>
+            <label><input id="merchant_name_mismatch" type="checkbox"> Merchant/payee name mismatch</label>
+            <label><input id="urgency_pressure" type="checkbox"> Urgent pressure/threat to pay now</label>
+            <label><input id="unknown_caller_request" type="checkbox"> Unknown caller asked for transaction</label>
+            <label><input id="suspicious_app_clone" type="checkbox"> Suspected fake UPI app clone</label>
+          </div>
           <button type="submit" id="scoreBtn">Score Transaction</button>
         </form>
         <div id="latestResult" class="result-box">Submit a transaction to see risk score and safety tips.</div>
@@ -93,6 +133,28 @@
     </section>
 
     <section class="panel">
+      <h3>Complaint Box</h3>
+      <p>Submit your cyber fraud complaint to the official government cybercrime portal.</p>
+      <div class="complaint-grid">
+        <select id="complaintType">
+          <option value="UPI Fraud">UPI Fraud</option>
+          <option value="QR Code Scam">QR Code Scam</option>
+          <option value="Phishing Link Fraud">Phishing Link Fraud</option>
+          <option value="Fake Payment Screenshot">Fake Payment Screenshot</option>
+          <option value="OTP / UPI PIN Fraud">OTP / UPI PIN Fraud</option>
+          <option value="Remote Access Scam">Remote Access Scam</option>
+          <option value="Other">Other</option>
+        </select>
+        <textarea id="complaintDetails" rows="4" placeholder="Describe incident, transaction id, amount, date/time, and phone/UPI details."></textarea>
+        <div class="complaint-actions">
+          <button type="button" id="openComplaintPortalBtn">File Official Complaint</button>
+          <a id="complaintPortalLink" href="https://cybercrime.gov.in/Webform/Accept.aspx" target="_blank" rel="noopener noreferrer">Open cybercrime.gov.in</a>
+        </div>
+      </div>
+      <div id="complaintStatus" class="result-box">Your complaint summary will be copied, then portal will open in a new tab.</div>
+    </section>
+
+    <section class="panel">
       <h3 id="recentTitle">Recent Scored Transactions</h3>
       <div class="table-wrap">
         <table>
@@ -103,6 +165,7 @@
               <th id="thAmount">Amount</th>
               <th id="thVerdict">Verdict</th>
               <th id="thRisk">Risk</th>
+              <th>Fraud Types</th>
               <th id="thTip">Tip</th>
             </tr>
           </thead>

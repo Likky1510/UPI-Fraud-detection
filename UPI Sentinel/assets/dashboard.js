@@ -1,4 +1,16 @@
 const API_BASE = "http://127.0.0.1:8000";
+const AUTH_KEY = "upi_user";
+
+function ensureAuthenticated() {
+  const raw = localStorage.getItem(AUTH_KEY);
+  if (!raw) {
+    window.location.href = "login.html";
+    throw new Error("Unauthenticated");
+  }
+}
+
+ensureAuthenticated();
+
 const LANGUAGE_LABELS = { en: "English", hi: "Hindi", te: "Telugu" };
 const UI_TEXT = {
   en: {
@@ -73,6 +85,17 @@ const UI_TEXT = {
     voiceFilledRisky: "Filled a risky example. You can now click score transaction.",
     voiceScoring: "Scoring transaction now.",
     voiceSimulating: "Starting batch simulation now.",
+    scenarioTransaction: "Transaction Risk (Full)",
+    scenarioQrScam: "QR Code Scam",
+    scenarioPhishing: "Phishing Link Fraud",
+    scenarioFakePay: "Fake Payment Screenshot",
+    scenarioOtpPin: "OTP / UPI PIN Fraud",
+    scenarioCollect: "Collect Request Scam",
+    scenarioRemote: "Remote App / Screen Share Scam",
+    scenarioCaller: "Unknown Caller Pressure Scam",
+    scenarioFakeApp: "Fake UPI App Clone",
+    applyScenarioBtn: "Apply Fraud Type",
+    scenarioHint_default: "Select fraud type to open required fields only.",
   },
   hi: {
     subtitle: "धोखाधड़ी पहचान कंसोल",
@@ -146,6 +169,17 @@ const UI_TEXT = {
     voiceFilledRisky: "जोखिमपूर्ण उदाहरण भर दिया गया है। अब आप स्कोर ट्रांजैक्शन क्लिक करें।",
     voiceScoring: "अब ट्रांजैक्शन स्कोर किया जा रहा है।",
     voiceSimulating: "अब बैच सिमुलेशन शुरू किया जा रहा है।",
+    scenarioTransaction: "लेनदेन जोखिम (पूर्ण)",
+    scenarioQrScam: "QR कोड धोखाधड़ी",
+    scenarioPhishing: "फिशिंग लिंक धोखाधड़ी",
+    scenarioFakePay: "फर्जी भुगतान स्क्रीनशॉट",
+    scenarioOtpPin: "OTP / UPI PIN धोखाधड़ी",
+    scenarioCollect: "कलेक्ट रिक्वेस्ट धोखाधड़ी",
+    scenarioRemote: "रिमोट ऐप / स्क्रीन शेयर धोखाधड़ी",
+    scenarioCaller: "अज्ञात कॉलर दबाव धोखाधड़ी",
+    scenarioFakeApp: "फर्जी UPI ऐप क्लोन",
+    applyScenarioBtn: "फ्रॉड प्रकार लागू करें",
+    scenarioHint_default: "फ्रॉड प्रकार चुनें, सिस्टम केवल जरूरी फील्ड दिखाएगा।",
   },
   te: {
     subtitle: "మోసం గుర్తింపు కన్సోల్",
@@ -219,6 +253,17 @@ const UI_TEXT = {
     voiceFilledRisky: "ప్రమాదకర ఉదాహరణను నింపాం. ఇప్పుడు స్కోర్ ట్రాన్సాక్షన్ నొక్కండి.",
     voiceScoring: "ఇప్పుడు ట్రాన్సాక్షన్ స్కోర్ చేస్తోంది.",
     voiceSimulating: "ఇప్పుడు బ్యాచ్ సిమ్యులేషన్ ప్రారంభమవుతోంది.",
+    scenarioTransaction: "లావాదేవీ రిస్క్ (పూర్తి)",
+    scenarioQrScam: "QR కోడ్ మోసం",
+    scenarioPhishing: "ఫిషింగ్ లింక్ మోసం",
+    scenarioFakePay: "నకిలీ చెల్లింపు స్క్రీన్‌షాట్",
+    scenarioOtpPin: "OTP / UPI PIN మోసం",
+    scenarioCollect: "కలెక్ట్ రిక్వెస్ట్ మోసం",
+    scenarioRemote: "రిమోట్ యాప్ / స్క్రీన్ షేర్ మోసం",
+    scenarioCaller: "తెలియని కాలర్ ఒత్తిడి మోసం",
+    scenarioFakeApp: "నకిలీ UPI యాప్ క్లోన్",
+    applyScenarioBtn: "మోసం రకం వర్తింపజేయండి",
+    scenarioHint_default: "మోసం రకం ఎంచుకుంటే అవసరమైన ఫీల్డ్‌లే చూపిస్తాం.",
   },
 };
 
@@ -243,6 +288,16 @@ const refs = {
   voiceStatus: document.getElementById("voiceStatus"),
   autoVoiceTips: document.getElementById("autoVoiceTips"),
   assistantMessages: document.getElementById("assistantMessages"),
+  fraudScenario: document.getElementById("fraudScenario"),
+  applyScenarioBtn: document.getElementById("applyScenarioBtn"),
+  scenarioHint: document.getElementById("scenarioHint"),
+  scenarioQuestions: document.getElementById("scenarioQuestions"),
+  scenarioQuestionsFakeApp: document.getElementById("scenarioQuestionsFakeApp"),
+  fraudSignalsPanel: document.getElementById("fraudSignalsPanel"),
+  complaintType: document.getElementById("complaintType"),
+  complaintDetails: document.getElementById("complaintDetails"),
+  openComplaintPortalBtn: document.getElementById("openComplaintPortalBtn"),
+  complaintStatus: document.getElementById("complaintStatus"),
 };
 
 let summary = { total: 0, safe: 0, risky: 0, blocked: 0 };
@@ -295,10 +350,15 @@ const SPEECH_REWRITE_MAP = {
 };
 const ASSISTANT_KB = {
   en: {
-    welcome: "I am your UPI Shield assistant. Ask me anything about this dashboard, form fields, scoring, simulation, or fraud safety.",
+    welcome: "I am your UPI Sentinel assistant. Ask me anything about this dashboard, form fields, scoring, simulation, or fraud safety.",
     fallback: "I can help with: how to fill form, step, amount/balances, safe vs risky vs blocked, simulation, language change, and fraud tips.",
     guide: "Fill in this order: Transaction ID, Type, Amount, Step (1-744), sender balances, receiver balances, recent txns in 1 hour, then device/location changed if unusual.",
     tips: "Never share OTP or UPI PIN. Verify UPI ID and recipient name. Avoid unknown QR codes and fake support calls.",
+    qrScam: "QR scam: scammers ask you to scan a QR to receive money. Receiving money never needs UPI PIN. Do not scan unknown QR codes.",
+    phishingScam: "Phishing fraud: fake payment links or fake support pages steal your details. Open only official app links.",
+    fakePaymentScam: "Fake payment scam: fraudsters show edited screenshots. Always verify actual credit in your UPI app or bank SMS.",
+    collectScam: "Collect request scam: unknown ID sends collect request and asks you to approve. Reject suspicious collect requests.",
+    otpPinScam: "OTP/PIN fraud: never share OTP or UPI PIN. Bank staff never ask for them.",
     step: "Step is the dataset time index in hours. Use any integer from 1 to 744.",
     amount: "Amount is the transfer value. Keep balances consistent: sender new balance is usually old minus amount.",
     balances: "Old Balance Org/Dest means before transaction. New Balance Org/Dest means after transaction.",
@@ -317,10 +377,15 @@ const ASSISTANT_KB = {
     langChanged: "Language changed to {lang}.",
   },
   hi: {
-    welcome: "मैं आपका UPI Shield असिस्टेंट हूं। डैशबोर्ड, फॉर्म, स्कोरिंग, सिमुलेशन और सुरक्षा पर कुछ भी पूछें।",
+    welcome: "मैं आपका UPI Sentinel असिस्टेंट हूं। डैशबोर्ड, फॉर्म, स्कोरिंग, सिमुलेशन और सुरक्षा पर कुछ भी पूछें।",
     fallback: "मैं इन विषयों में मदद कर सकता हूं: फॉर्म कैसे भरें, स्टेप, राशि/बैलेंस, सुरक्षित/जोखिमपूर्ण/ब्लॉक, सिमुलेशन, भाषा बदलना और सुरक्षा सुझाव।",
     guide: "यह क्रम रखें: लेनदेन आईडी, प्रकार, राशि, स्टेप (1-744), प्रेषक बैलेंस, प्राप्तकर्ता बैलेंस, पिछले 1 घंटे के लेनदेन, और जरूरत हो तो डिवाइस/लोकेशन बदला चुनें।",
     tips: "OTP या UPI PIN कभी साझा न करें। UPI ID और नाम जांचें। अज्ञात QR और फर्जी सपोर्ट कॉल से बचें।",
+    qrScam: "QR धोखाधड़ी: ठग पैसा प्राप्त करने के नाम पर QR स्कैन करवाते हैं। पैसा प्राप्त करने के लिए PIN नहीं लगता।",
+    phishingScam: "फिशिंग धोखाधड़ी: नकली पेमेंट लिंक/वेबसाइट आपके विवरण चुरा सकते हैं। केवल आधिकारिक लिंक खोलें।",
+    fakePaymentScam: "फर्जी भुगतान: स्क्रीनशॉट पर भरोसा न करें। UPI ऐप या बैंक SMS में क्रेडिट जांचें।",
+    collectScam: "कलेक्ट रिक्वेस्ट धोखाधड़ी: अज्ञात ID की रिक्वेस्ट को स्वीकार न करें।",
+    otpPinScam: "OTP/PIN धोखाधड़ी: OTP और UPI PIN कभी साझा न करें।",
     step: "Step डेटा का घंटों वाला समय इंडेक्स है। 1 से 744 तक कोई पूर्णांक दें।",
     amount: "Amount ट्रांसफर राशि है। बैलेंस सही रखें: sender new balance आमतौर पर old minus amount होता है।",
     balances: "Old Balance Org/Dest = लेनदेन से पहले। New Balance Org/Dest = लेनदेन के बाद।",
@@ -339,10 +404,15 @@ const ASSISTANT_KB = {
     langChanged: "भाषा {lang} में बदल दी गई है।",
   },
   te: {
-    welcome: "నేను మీ UPI Shield అసిస్టెంట్‌ను. డాష్‌బోర్డ్, ఫారమ్, స్కోరింగ్, సిమ్యులేషన్, భద్రతపై ఏదైనా అడగండి.",
+    welcome: "నేను మీ UPI Sentinel అసిస్టెంట్‌ను. డాష్‌బోర్డ్, ఫారమ్, స్కోరింగ్, సిమ్యులేషన్, భద్రతపై ఏదైనా అడగండి.",
     fallback: "నేను ఈ విషయాల్లో సహాయం చేస్తాను: ఫారమ్ ఎలా నింపాలి, స్టెప్, మొత్తం/బ్యాలెన్స్, సురక్షితం/ప్రమాదకరం/నిలిపివేసినవి, సిమ్యులేషన్, భాష మార్చడం, భద్రత సూచనలు.",
     guide: "ఈ క్రమంలో నింపండి: లావాదేవీ ఐడి, రకం, మొత్తం, స్టెప్ (1-744), పంపినవారి బ్యాలెన్స్, స్వీకరించే వారి బ్యాలెన్స్, గత 1 గంట లావాదేవీల సంఖ్య, అవసరమైతే డివైస్/లోకేషన్ మారింది ఎంపిక చేయండి.",
     tips: "OTP లేదా UPI PIN ఎప్పుడూ పంచుకోవద్దు. UPI ID మరియు పేరు ధృవీకరించండి. తెలియని QR కోడ్‌లు, నకిలీ సపోర్ట్ కాల్స్ నుండి జాగ్రత్త.",
+    qrScam: "QR మోసం: డబ్బు వస్తుందని చెప్పి QR స్కాన్ చేయిస్తారు. డబ్బు స్వీకరించడానికి PIN అవసరం లేదు.",
+    phishingScam: "ఫిషింగ్ మోసం: నకిలీ లింక్‌లు/పేజీలు మీ వివరాలు దొంగిలిస్తాయి. అధికారిక లింక్‌లనే వాడండి.",
+    fakePaymentScam: "నకిలీ చెల్లింపు: స్క్రీన్‌షాట్ నమ్మకండి. యాప్/SMS లో నిజంగా క్రెడిట్ వచ్చిందో చూడండి.",
+    collectScam: "కలెక్ట్ రిక్వెస్ట్ మోసం: తెలియని ID నుండి వచ్చిన రిక్వెస్ట్‌ను ఆమోదించవద్దు.",
+    otpPinScam: "OTP/PIN మోసం: OTP, UPI PIN ఎప్పుడూ పంచుకోవద్దు.",
     step: "Step అనేది గంటల ఆధారిత టైమ్ ఇండెక్స్. 1 నుండి 744 వరకు పూర్తి సంఖ్య ఇవ్వండి.",
     amount: "Amount అంటే పంపే మొత్తం. బ్యాలెన్స్ సరిపోయేలా ఉండాలి: sender new balance సాధారణంగా old minus amount.",
     balances: "Old Balance Org/Dest = లావాదేవీకి ముందు. New Balance Org/Dest = లావాదేవీ తర్వాత.",
@@ -506,6 +576,18 @@ function fillSafeExample() {
   document.getElementById("recent_txn_count_1h").value = "1";
   document.getElementById("device_changed").checked = false;
   document.getElementById("location_changed").checked = false;
+  document.getElementById("unknown_qr_code").checked = false;
+  document.getElementById("collect_request_received").checked = false;
+  document.getElementById("otp_shared").checked = false;
+  document.getElementById("upi_pin_shared").checked = false;
+  document.getElementById("phishing_link_clicked").checked = false;
+  document.getElementById("remote_app_installed").checked = false;
+  document.getElementById("screen_share_active").checked = false;
+  document.getElementById("fake_payment_screenshot").checked = false;
+  document.getElementById("merchant_name_mismatch").checked = false;
+  document.getElementById("urgency_pressure").checked = false;
+  document.getElementById("unknown_caller_request").checked = false;
+  document.getElementById("suspicious_app_clone").checked = false;
 }
 
 function fillRiskyExample() {
@@ -520,6 +602,18 @@ function fillRiskyExample() {
   document.getElementById("recent_txn_count_1h").value = "8";
   document.getElementById("device_changed").checked = true;
   document.getElementById("location_changed").checked = true;
+  document.getElementById("unknown_qr_code").checked = true;
+  document.getElementById("collect_request_received").checked = true;
+  document.getElementById("otp_shared").checked = true;
+  document.getElementById("upi_pin_shared").checked = false;
+  document.getElementById("phishing_link_clicked").checked = true;
+  document.getElementById("remote_app_installed").checked = false;
+  document.getElementById("screen_share_active").checked = true;
+  document.getElementById("fake_payment_screenshot").checked = true;
+  document.getElementById("merchant_name_mismatch").checked = true;
+  document.getElementById("urgency_pressure").checked = true;
+  document.getElementById("unknown_caller_request").checked = true;
+  document.getElementById("suspicious_app_clone").checked = false;
 }
 
 function commandMatches(command, patterns) {
@@ -551,6 +645,11 @@ function getIntentFromCommand(command) {
   const intents = [
     { id: "help", patterns: ["help", "guide", "how to fill", "form", "मदद", "सहायता", "फॉर्म", "ఎలా నింపాలి", "సహాయం", "ఫారమ్"] },
     { id: "tips", patterns: ["tips", "tip", "safety", "fraud", "otp", "सुरक्षा", "सुझाव", "टिप्स", "మోసం", "సూచనలు", "భద్రత"] },
+    { id: "qrScam", patterns: ["qr scam", "unknown qr", "qr code", "क्यूआर", "qr कोड", "క్యుఆర్", "qr మోసం"] },
+    { id: "phishingScam", patterns: ["phishing", "fake link", "suspicious link", "फिशिंग", "నకిలీ లింక్", "ఫిషింగ్"] },
+    { id: "fakePaymentScam", patterns: ["fake payment", "screenshot", "payment screenshot", "फर्जी भुगतान", "స్క్రీన్‌షాట్", "నకిలీ చెల్లింపు"] },
+    { id: "collectScam", patterns: ["collect request", "money request", "कलेक्ट रिक्वेस्ट", "కలెక్ట్ రిక్వెస్ట్"] },
+    { id: "otpPinScam", patterns: ["otp", "upi pin", "pin shared", "otp shared", "ओटीपी", "upi पिन", "యుపిఐ పిన్", "otp మోసం"] },
     { id: "step", patterns: ["step", "स्टेप", "స్టెప్"] },
     { id: "amount", patterns: ["amount", "राशि", "amount क्या", "మొత్తం", "ఎంత మొత్తం"] },
     { id: "balances", patterns: ["balance", "old balance", "new balance", "बैलेंस", "शेष", "బ్యాలెన్స్"] },
@@ -607,6 +706,21 @@ function runAssistantCommand(rawCommand) {
   } else if (intent === "tips") {
     response = kb("tips");
     lastAssistantIntent = "tips";
+  } else if (intent === "qrScam") {
+    response = kb("qrScam");
+    lastAssistantIntent = "qrScam";
+  } else if (intent === "phishingScam") {
+    response = kb("phishingScam");
+    lastAssistantIntent = "phishingScam";
+  } else if (intent === "fakePaymentScam") {
+    response = kb("fakePaymentScam");
+    lastAssistantIntent = "fakePaymentScam";
+  } else if (intent === "collectScam") {
+    response = kb("collectScam");
+    lastAssistantIntent = "collectScam";
+  } else if (intent === "otpPinScam") {
+    response = kb("otpPinScam");
+    lastAssistantIntent = "otpPinScam";
   } else if (intent === "step") {
     response = kb("step");
     lastAssistantIntent = "step";
@@ -750,7 +864,12 @@ function updateSummary() {
   chart.update();
 }
 
-function addResultRowValues(transactionId, type, amount, verdict, riskScore, tip) {
+function formatFraudCategories(categories) {
+  if (!categories || !categories.length) return "None";
+  return categories.join(", ");
+}
+
+function addResultRowValues(transactionId, type, amount, verdict, riskScore, tip, fraudCategories) {
   const row = document.createElement("tr");
   row.innerHTML = `
     <td>${transactionId}</td>
@@ -758,6 +877,7 @@ function addResultRowValues(transactionId, type, amount, verdict, riskScore, tip
     <td>${Number(amount).toFixed(2)}</td>
     <td class="${statusClass(verdict)}">${verdict}</td>
     <td>${riskScore}%</td>
+    <td>${formatFraudCategories(fraudCategories)}</td>
     <td>${tip}</td>
   `;
   refs.table.prepend(row);
@@ -768,7 +888,15 @@ function addResultRowValues(transactionId, type, amount, verdict, riskScore, tip
 }
 
 function addResultRow(payload, result) {
-  addResultRowValues(result.transaction_id, payload.type, payload.amount, result.verdict, result.risk_score, result.tip);
+  addResultRowValues(
+    result.transaction_id,
+    payload.type,
+    payload.amount,
+    result.verdict,
+    result.risk_score,
+    result.tip,
+    result.fraud_categories,
+  );
 }
 
 function registerVerdict(verdict) {
@@ -798,7 +926,9 @@ function applyLanguage(lang) {
     "simulateBtn", "recentTitle", "thId", "thType", "thAmount", "thVerdict", "thRisk", "thTip",
     "typePayment", "typeTransfer", "typeCashOut", "typeCashIn", "typeDebit",
     "voiceTitle", "voiceDesc", "guideSpeakBtn", "tipsSpeakBtn", "voiceListenBtn", "voiceStopBtn",
-    "assistantAskBtn", "autoVoiceLabel",
+    "assistantAskBtn", "autoVoiceLabel", "scenarioTransaction", "scenarioQrScam", "scenarioPhishing",
+    "scenarioFakePay", "scenarioOtpPin", "scenarioCollect", "scenarioRemote", "scenarioCaller",
+    "scenarioFakeApp", "applyScenarioBtn",
   ];
   fields.forEach((id) => {
     const el = document.getElementById(id);
@@ -817,9 +947,146 @@ function applyLanguage(lang) {
   refs.language.options[0].text = LANGUAGE_LABELS.en;
   refs.language.options[1].text = LANGUAGE_LABELS.hi;
   refs.language.options[2].text = LANGUAGE_LABELS.te;
+  refs.scenarioHint.textContent = t("scenarioHint_default");
+}
+
+const NUMBER_DEFAULTS = {
+  amount: 500,
+  step: 120,
+  oldbalanceOrg: 10000,
+  newbalanceOrig: 9500,
+  oldbalanceDest: 20000,
+  newbalanceDest: 20500,
+  recent_txn_count_1h: 1,
+};
+
+const BASIC_FIELDS = [
+  "transaction_id", "type", "amount", "step", "oldbalanceOrg", "newbalanceOrig",
+  "oldbalanceDest", "newbalanceDest", "recent_txn_count_1h", "device_changed", "location_changed",
+];
+
+const SCENARIO_RULES = {
+  transaction_full: {
+    show: BASIC_FIELDS,
+    required: ["transaction_id", "type", "amount", "step", "oldbalanceOrg", "newbalanceOrig"],
+    showSignals: [
+      "unknown_qr_code", "collect_request_received", "otp_shared", "upi_pin_shared", "phishing_link_clicked",
+      "remote_app_installed", "screen_share_active", "fake_payment_screenshot", "merchant_name_mismatch",
+      "urgency_pressure", "unknown_caller_request", "suspicious_app_clone",
+    ],
+    autoSignals: [],
+  },
+  qr_scam: {
+    show: ["transaction_id", "type", "amount", "step", "merchant_name_mismatch"],
+    required: ["transaction_id", "type", "amount"],
+    showSignals: ["merchant_name_mismatch", "urgency_pressure", "unknown_caller_request"],
+    autoSignals: [],
+  },
+  phishing_link: {
+    show: ["transaction_id", "type", "amount", "device_changed", "location_changed"],
+    required: ["transaction_id", "type", "amount"],
+    showSignals: ["phishing_link_clicked", "unknown_caller_request", "urgency_pressure"],
+    autoSignals: ["phishing_link_clicked"],
+  },
+  fake_payment: {
+    show: ["transaction_id", "type", "amount", "oldbalanceDest", "newbalanceDest"],
+    required: ["transaction_id", "type", "amount"],
+    showSignals: ["fake_payment_screenshot", "merchant_name_mismatch"],
+    autoSignals: ["fake_payment_screenshot"],
+  },
+  otp_pin: {
+    show: ["transaction_id", "type", "amount"],
+    required: ["transaction_id", "type", "amount"],
+    showSignals: ["otp_shared", "upi_pin_shared", "unknown_caller_request", "urgency_pressure"],
+    autoSignals: ["otp_shared", "unknown_caller_request"],
+  },
+  collect_request: {
+    show: ["transaction_id", "type", "amount", "step"],
+    required: ["transaction_id", "type", "amount"],
+    showSignals: ["collect_request_received", "unknown_caller_request", "merchant_name_mismatch"],
+    autoSignals: ["collect_request_received"],
+  },
+  remote_access: {
+    show: ["transaction_id", "type", "amount", "device_changed"],
+    required: ["transaction_id", "type", "amount"],
+    showSignals: ["remote_app_installed", "screen_share_active", "otp_shared", "upi_pin_shared"],
+    autoSignals: ["remote_app_installed"],
+  },
+  caller_pressure: {
+    show: ["transaction_id", "type", "amount"],
+    required: ["transaction_id", "type", "amount"],
+    showSignals: ["unknown_caller_request", "urgency_pressure", "otp_shared", "upi_pin_shared"],
+    autoSignals: ["unknown_caller_request", "urgency_pressure"],
+  },
+  fake_app: {
+    show: ["transaction_id", "type", "amount", "device_changed"],
+    required: ["transaction_id", "type", "amount"],
+    showSignals: ["suspicious_app_clone", "otp_shared", "upi_pin_shared"],
+    autoSignals: ["suspicious_app_clone"],
+  },
+};
+
+function toggleField(id, visible) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const tag = el.tagName.toLowerCase();
+  const wrapper = tag === "input" && el.type === "checkbox" ? el.closest("label") : el;
+  if (wrapper) wrapper.style.display = visible ? "" : "none";
+}
+
+function applyScenario() {
+  const key = refs.fraudScenario.value;
+  const rule = SCENARIO_RULES[key] || SCENARIO_RULES.transaction_full;
+  const allSignals = SCENARIO_RULES.transaction_full.showSignals;
+
+  for (const fieldId of BASIC_FIELDS) {
+    const visible = rule.show.includes(fieldId);
+    toggleField(fieldId, visible);
+    const el = document.getElementById(fieldId);
+    if (!el) continue;
+    if ("required" in el) el.required = visible && rule.required.includes(fieldId);
+    if (!visible && el.tagName.toLowerCase() === "input" && el.type !== "checkbox" && NUMBER_DEFAULTS[fieldId] !== undefined) {
+      el.value = NUMBER_DEFAULTS[fieldId];
+    }
+    if (!visible && el.type === "checkbox") el.checked = false;
+  }
+
+  for (const signalId of allSignals) {
+    const el = document.getElementById(signalId);
+    if (!el) continue;
+    const visible = rule.showSignals.includes(signalId);
+    toggleField(signalId, visible);
+    el.checked = rule.autoSignals.includes(signalId);
+  }
+
+  if (!document.getElementById("transaction_id").value) {
+    document.getElementById("transaction_id").value = `TXN-${Date.now().toString().slice(-6)}`;
+  }
+  if (key !== "qr_scam") {
+    document.getElementById("q_unknown_qr").checked = false;
+    document.getElementById("q_scan_receive_money").checked = false;
+    document.getElementById("q_qr_pin_otp_prompt").checked = false;
+  }
+  if (key !== "fake_app") {
+    document.getElementById("q_fakeapp_otp_requested").checked = false;
+  }
+  refs.scenarioHint.textContent = `${t("applyScenarioBtn")}: ${document.querySelector("#fraudScenario option:checked")?.textContent || ""}`;
+  refs.fraudSignalsPanel.style.display = key === "transaction_full" ? "" : "none";
+  refs.scenarioQuestions.style.display = key === "qr_scam" ? "" : "none";
+  refs.scenarioQuestionsFakeApp.style.display = key === "fake_app" ? "" : "none";
+  if (key !== "transaction_full") {
+    refs.scenarioHint.textContent = `${refs.scenarioHint.textContent} | Fraud signals are auto-set for this fraud type.`;
+  }
 }
 
 function formPayload() {
+  const isQrScenario = refs.fraudScenario.value === "qr_scam";
+  const isFakeAppScenario = refs.fraudScenario.value === "fake_app";
+  const qrUnknown = isQrScenario ? document.getElementById("q_unknown_qr").checked : document.getElementById("unknown_qr_code").checked;
+  const qrReceive = isQrScenario ? document.getElementById("q_scan_receive_money").checked : false;
+  const qrPinPrompt = isQrScenario ? document.getElementById("q_qr_pin_otp_prompt").checked : false;
+  const fakeAppOtp = isFakeAppScenario ? document.getElementById("q_fakeapp_otp_requested").checked : document.getElementById("otp_shared").checked;
+
   return {
     transaction_id: document.getElementById("transaction_id").value,
     step: Number(document.getElementById("step").value),
@@ -833,6 +1100,20 @@ function formPayload() {
     device_changed: document.getElementById("device_changed").checked,
     location_changed: document.getElementById("location_changed").checked,
     recent_txn_count_1h: Number(document.getElementById("recent_txn_count_1h").value || 0),
+    unknown_qr_code: qrUnknown,
+    asked_scan_to_receive_money: qrReceive,
+    pin_or_otp_prompt_after_qr: qrPinPrompt,
+    collect_request_received: document.getElementById("collect_request_received").checked,
+    otp_shared: fakeAppOtp,
+    upi_pin_shared: isFakeAppScenario ? fakeAppOtp : document.getElementById("upi_pin_shared").checked,
+    phishing_link_clicked: document.getElementById("phishing_link_clicked").checked,
+    remote_app_installed: document.getElementById("remote_app_installed").checked,
+    screen_share_active: document.getElementById("screen_share_active").checked,
+    fake_payment_screenshot: document.getElementById("fake_payment_screenshot").checked,
+    merchant_name_mismatch: document.getElementById("merchant_name_mismatch").checked,
+    urgency_pressure: document.getElementById("urgency_pressure").checked,
+    unknown_caller_request: document.getElementById("unknown_caller_request").checked,
+    suspicious_app_clone: document.getElementById("suspicious_app_clone").checked,
   };
 }
 
@@ -851,12 +1132,13 @@ refs.form.addEventListener("submit", async (e) => {
 
     const result = await res.json();
     const activeLanguage = LANGUAGE_LABELS[result.language] || result.language;
-    refs.result.textContent = formatMessage(t("resultFormat"), {
+    const fraudInfo = formatFraudCategories(result.fraud_categories);
+    refs.result.textContent = `${formatMessage(t("resultFormat"), {
       verdict: result.verdict,
       risk: result.risk_score,
       lang: activeLanguage,
       tip: result.tip,
-    });
+    })} | Fraud Types: ${fraudInfo}`;
     if (refs.autoVoiceTips.checked) {
       speakText(`${result.verdict}. ${result.tip}`);
     }
@@ -891,7 +1173,15 @@ refs.simulateBtn.addEventListener("click", async () => {
 
     refs.table.innerHTML = "";
     batch.preview_rows.forEach((row) => {
-      addResultRowValues(row.transaction_id, row.type, row.amount, row.verdict, row.risk_score, row.tip);
+      addResultRowValues(
+        row.transaction_id,
+        row.type,
+        row.amount,
+        row.verdict,
+        row.risk_score,
+        row.tip,
+        row.fraud_categories,
+      );
     });
 
     refs.result.textContent = formatMessage(t("simComplete"), {
@@ -936,6 +1226,14 @@ refs.assistantQuery.addEventListener("keydown", (event) => {
   }
 });
 
+refs.applyScenarioBtn.addEventListener("click", () => {
+  applyScenario();
+});
+
+refs.fraudScenario.addEventListener("change", () => {
+  applyScenario();
+});
+
 refs.language.addEventListener("change", () => {
   applyLanguage(refs.language.value);
   checkBackend();
@@ -951,7 +1249,41 @@ refs.language.addEventListener("change", () => {
   updateSummary();
 });
 
+refs.openComplaintPortalBtn?.addEventListener("click", async () => {
+  const incidentType = refs.complaintType?.value || "UPI Fraud";
+  const details = (refs.complaintDetails?.value || "").trim();
+  const txId = document.getElementById("transaction_id")?.value || "N/A";
+  const amount = document.getElementById("amount")?.value || "N/A";
+  const summary = [
+    `Incident Type: ${incidentType}`,
+    `Transaction ID: ${txId}`,
+    `Amount: ${amount}`,
+    `Scenario: ${refs.fraudScenario?.value || "N/A"}`,
+    `Details: ${details || "N/A"}`,
+  ].join("\n");
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(summary);
+      refs.complaintStatus.textContent = "Complaint summary copied. Please paste it on cybercrime portal form.";
+    } else {
+      refs.complaintStatus.textContent = "Clipboard not available. Please manually copy details and submit on portal.";
+    }
+  } catch (_err) {
+    refs.complaintStatus.textContent = "Could not auto-copy summary. You can still file complaint on portal.";
+  }
+
+  window.open("https://cybercrime.gov.in/Webform/Accept.aspx", "_blank", "noopener,noreferrer");
+});
+
+document.getElementById("navLogout")?.addEventListener("click", (event) => {
+  event.preventDefault();
+  localStorage.removeItem(AUTH_KEY);
+  window.location.href = "login.html";
+});
+
 applyLanguage(refs.language.value);
+applyScenario();
 refs.result.textContent = t("defaultResult");
 refs.apiState.textContent = t("checkingBackend");
 setVoiceStatus(t("voiceReady"));

@@ -40,7 +40,31 @@ header { display: flex; justify-content: space-between; align-items: center; mar
 .form-grid input, .form-grid select, .form-grid button { padding: 10px; border: 1px solid #d9e3f0; border-radius: 8px; }
 .form-grid label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
 .form-grid button { grid-column: 1 / -1; border: 0; background: linear-gradient(90deg, #0066d6, #0084ff); color: #fff; cursor: pointer; }
+.scenario-bar { grid-column: 1 / -1; display: flex; gap: 8px; }
+.scenario-bar select { flex: 1; }
+.scenario-bar button { background: #0a4d8e; }
+.scenario-hint {
+  grid-column: 1 / -1;
+  background: #eef5ff;
+  color: #22496f;
+  border: 1px solid #d8e6f8;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 13px;
+}
 .result-box { margin-top: 12px; padding: 12px; border-radius: 10px; background: #eef5ff; color: #183a63; }
+.fraud-signals {
+  grid-column: 1 / -1;
+  padding: 12px;
+  border: 1px solid #d9e3f0;
+  border-radius: 10px;
+  background: #f8fbff;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+.fraud-signals h4 { margin: 0 0 6px; grid-column: 1 / -1; color: #103a6a; }
+.fraud-signals label { font-size: 13px; color: #264f7d; align-items: center; }
 .sim-actions { display: flex; gap: 8px; margin-bottom: 10px; }
 .sim-actions input, .sim-actions button { padding: 10px; border-radius: 8px; border: 1px solid #d9e3f0; }
 .sim-actions button { border: 0; background: #032d5a; color: #fff; cursor: pointer; }
@@ -75,6 +99,36 @@ header { display: flex; justify-content: space-between; align-items: center; mar
   background: #eef5ff;
   color: #1b3f6a;
 }
+.complaint-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+.complaint-grid select,
+.complaint-grid textarea {
+  padding: 10px;
+  border: 1px solid #d9e3f0;
+  border-radius: 8px;
+}
+.complaint-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.complaint-actions button {
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #c62828;
+  color: #fff;
+  cursor: pointer;
+}
+.complaint-actions a {
+  color: #0a4d8e;
+  text-decoration: none;
+  font-weight: 600;
+}
 
 .table-wrap { overflow: auto; }
 table { width: 100%; border-collapse: collapse; }
@@ -88,5 +142,7 @@ th, td { text-align: left; padding: 10px; border-bottom: 1px solid #edf1f7; font
   .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid { grid-template-columns: 1fr; }
   .form-grid { grid-template-columns: 1fr; }
+  .scenario-bar { flex-direction: column; }
+  .fraud-signals { grid-template-columns: 1fr; }
   .voice-query { flex-direction: column; }
 }

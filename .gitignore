@@ -9,6 +9,7 @@ venv/
 
 # ML artifacts and data
 backend/artifacts/
+backend/data/
 *.pt
 *.pth
 *.h5
