@@ -11,6 +11,12 @@ LANGUAGE_CODE_MAP = {
     "te": "te-IN",
 }
 
+VOICE_NAME_CANDIDATES = {
+    "en": ["en-IN-Wavenet-A", "en-IN-Standard-A"],
+    "hi": ["hi-IN-Wavenet-A", "hi-IN-Standard-A"],
+    "te": ["te-IN-Standard-A"],
+}
+
 
 @dataclass
 class CloudTTSService:
@@ -28,7 +34,7 @@ class CloudTTSService:
         self.client = texttospeech.TextToSpeechClient()
         return self.client
 
-    def synthesize_mp3(self, text: str, language: LanguageCode) -> bytes:
+    def synthesize_mp3_with_meta(self, text: str, language: LanguageCode) -> tuple[bytes, dict]:
         clean_text = (text or "").strip()
         if not clean_text:
             raise ValueError("Text is empty")
@@ -39,19 +45,61 @@ class CloudTTSService:
         from google.cloud import texttospeech  # type: ignore
 
         synthesis_input = texttospeech.SynthesisInput(text=clean_text)
-        voice = texttospeech.VoiceSelectionParams(
-            language_code=LANGUAGE_CODE_MAP.get(language, "en-IN"),
-            ssml_gender=texttospeech.SsmlVoiceGender.FEMALE,
-        )
         audio_config = texttospeech.AudioConfig(
             audio_encoding=texttospeech.AudioEncoding.MP3,
             speaking_rate=0.92,
             pitch=1.5,
         )
+        language_code = LANGUAGE_CODE_MAP.get(language, "en-IN")
+        candidates = VOICE_NAME_CANDIDATES.get(language, [])
+        last_exc: Exception | None = None
 
-        response = client.synthesize_speech(
-            input=synthesis_input,
-            voice=voice,
-            audio_config=audio_config,
-        )
-        return bytes(response.audio_content)
+        for voice_name in candidates:
+            try:
+                voice = texttospeech.VoiceSelectionParams(
+                    language_code=language_code,
+                    name=voice_name,
+                    ssml_gender=texttospeech.SsmlVoiceGender.FEMALE,
+                )
+                response = client.synthesize_speech(
+                    input=synthesis_input,
+                    voice=voice,
+                    audio_config=audio_config,
+                )
+                return bytes(response.audio_content), {
+                    "language": language,
+                    "language_code": language_code,
+                    "selected_voice_name": voice_name,
+                    "selection_mode": "named_voice",
+                }
+            except Exception as exc:  # pragma: no cover - network/service errors
+                last_exc = exc
+
+        # Fallback to language+gender when specific voice names are unavailable.
+        try:
+            voice = texttospeech.VoiceSelectionParams(
+                language_code=language_code,
+                ssml_gender=texttospeech.SsmlVoiceGender.FEMALE,
+            )
+            response = client.synthesize_speech(
+                input=synthesis_input,
+                voice=voice,
+                audio_config=audio_config,
+            )
+            return bytes(response.audio_content), {
+                "language": language,
+                "language_code": language_code,
+                "selected_voice_name": None,
+                "selection_mode": "language_gender_fallback",
+            }
+        except Exception as exc:  # pragma: no cover
+            raise RuntimeError("Unable to synthesize TTS audio") from (last_exc or exc)
+
+    def synthesize_mp3(self, text: str, language: LanguageCode) -> bytes:
+        audio, _meta = self.synthesize_mp3_with_meta(text, language)
+        return audio
+
+    def debug_voice_selection(self, language: LanguageCode) -> dict:
+        # Use a tiny synthesis request to reveal the exact path/voice resolution used at runtime.
+        _audio, meta = self.synthesize_mp3_with_meta("UPI Sentinel voice check", language)
+        return meta

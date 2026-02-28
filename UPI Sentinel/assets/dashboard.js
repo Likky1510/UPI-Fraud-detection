@@ -560,6 +560,11 @@ async function speakText(text) {
     currentAudio.onerror = () => stopCurrentAudio();
     await currentAudio.play();
   } catch (_err) {
+    // Avoid confusing English fallback when Telugu/Hindi local voices are unavailable.
+    if ((currentLang === "te" || currentLang === "hi") && !hasLanguageVoice(currentLang)) {
+      setVoiceStatus("Cloud TTS failed and no local language voice found. Check backend Google TTS setup.");
+      return;
+    }
     speakTextLocal(prepared);
   }
 }

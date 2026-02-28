@@ -378,6 +378,20 @@ def tts(payload: TTSRequest) -> Response:
     return Response(content=audio_bytes, media_type="audio/mpeg")
 
 
+@app.get("/tts/debug-voice")
+def tts_debug_voice(language: str = "te") -> dict:
+    if language not in {"en", "hi", "te"}:
+        raise HTTPException(status_code=400, detail="language must be one of: en, hi, te")
+    try:
+        meta = tts_service.debug_voice_selection(language)  # type: ignore[arg-type]
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Cloud TTS debug failed. Verify Google credentials and TTS API access.",
+        ) from exc
+    return {"status": "ok", "meta": meta}
+
+
 @app.post("/predict/batch", response_model=BatchPredictResponse)
 def predict_batch(payload: BatchPredictRequest) -> BatchPredictResponse:
     txs = payload.transactions
